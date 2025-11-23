@@ -777,6 +777,10 @@
 
       // upload handlers
       function handleFileInput(input, targetPreview, assignTo){
+        if(!input) {
+          console.warn('File input element not found');
+          return;
+        }
         input.addEventListener('change', (ev)=>{
           const f = ev.target.files && ev.target.files[0];
           if(!f) return;
@@ -795,31 +799,39 @@
           reader.readAsDataURL(f);
         });
       }
-      handleFileInput(uploadA, previewA, (d)=>{imgA=d});
-      handleFileInput(uploadB, previewB, (d)=>{imgB=d});
+      if(uploadA && previewA) {
+        handleFileInput(uploadA, previewA, (d)=>{imgA=d});
+      }
+      if(uploadB && previewB) {
+        handleFileInput(uploadB, previewB, (d)=>{imgB=d});
+      }
 
       // Camera
-      camToggle.addEventListener('click',async ()=>{
-        if(cameraArea.classList.contains('hidden')){
-          try{
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
-            video.srcObject = stream; 
-            cameraArea.classList.remove('hidden'); 
-            camToggle.textContent='Close Camera';
-          }catch(err){
-            alert('Cannot open camera: '+err.message);
+      if(camToggle && cameraArea && video) {
+        camToggle.addEventListener('click',async ()=>{
+          if(cameraArea.classList.contains('hidden')){
+            try{
+              stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+              video.srcObject = stream; 
+              cameraArea.classList.remove('hidden'); 
+              camToggle.textContent='Close Camera';
+            }catch(err){
+              alert('Cannot open camera: '+err.message);
+            }
+          } else {
+            stopStream(); 
+            cameraArea.classList.add('hidden'); 
+            camToggle.textContent='Open Camera';
           }
-        } else {
+        });
+      }
+      if(closeCam && cameraArea) {
+        closeCam.addEventListener('click', ()=>{ 
           stopStream(); 
           cameraArea.classList.add('hidden'); 
-          camToggle.textContent='Open Camera';
-        }
-      });
-      closeCam.addEventListener('click', ()=>{ 
-        stopStream(); 
-        cameraArea.classList.add('hidden'); 
-        camToggle.textContent='Open Camera';
-      });
+          if(camToggle) camToggle.textContent='Open Camera';
+        });
+      }
       function stopStream(){ 
         if(stream){ 
           stream.getTracks().forEach(t=>t.stop()); 
@@ -828,57 +840,67 @@
         }
       }
       function captureFromVideo(){
+        if(!video) return null;
         const c = document.createElement('canvas'); 
         c.width=video.videoWidth||640; 
         c.height=video.videoHeight||480; 
         c.getContext('2d').drawImage(video,0,0,c.width,c.height); 
         return c.toDataURL('image/jpeg',0.85); 
       }
-      snapA.addEventListener('click', ()=>{ 
-        if(!stream){alert('Open camera first');return} 
-        imgA=captureFromVideo(); 
-        previewA.innerHTML=''; 
-        const im=new Image();
-        im.src=imgA;
-        im.style.maxWidth='100%';
-        im.style.maxHeight='100%';
-        im.style.objectFit='contain';
-        previewA.appendChild(im); 
-      });
-      snapB.addEventListener('click', ()=>{ 
-        if(!stream){alert('Open camera first');return} 
-        imgB=captureFromVideo(); 
-        previewB.innerHTML=''; 
-        const im=new Image();
-        im.src=imgB;
-        im.style.maxWidth='100%';
-        im.style.maxHeight='100%';
-        im.style.objectFit='contain';
-        previewB.appendChild(im); 
-      });
+      if(snapA && previewA) {
+        snapA.addEventListener('click', ()=>{ 
+          if(!stream){alert('Open camera first');return} 
+          imgA=captureFromVideo(); 
+          previewA.innerHTML=''; 
+          const im=new Image();
+          im.src=imgA;
+          im.style.maxWidth='100%';
+          im.style.maxHeight='100%';
+          im.style.objectFit='contain';
+          previewA.appendChild(im); 
+        });
+      }
+      if(snapB && previewB) {
+        snapB.addEventListener('click', ()=>{ 
+          if(!stream){alert('Open camera first');return} 
+          imgB=captureFromVideo(); 
+          previewB.innerHTML=''; 
+          const im=new Image();
+          im.src=imgB;
+          im.style.maxWidth='100%';
+          im.style.maxHeight='100%';
+          im.style.objectFit='contain';
+          previewB.appendChild(im); 
+        });
+      }
 
       // clear form
-      clearAll.addEventListener('click', ()=>{
-        if(!confirm('Clear the entire form? This will erase local data.')) return;
-        nameA.value=''; 
-        nameB.value=''; 
-        consentDate.value = new Date().toISOString().slice(0, 16);
-        chkFree.checked=chkAware.checked=chkAdult.checked=false; 
-        note.value='';
-        previewA.innerHTML=''; 
-        previewB.innerHTML=''; 
-        imgA=null; 
-        imgB=null; 
-        signerA.clear(); 
-        signerB.clear();
-        uploadA.value = '';
-        uploadB.value = '';
-        pdfPreview.textContent = 'PDF will include names, date/time, statements, signatures and any included photos.';
-        updateNameReferences(); // Reset name references
-      });
+      if(clearAll) {
+        clearAll.addEventListener('click', ()=>{
+          if(!confirm('Clear the entire form? This will erase local data.')) return;
+          if(nameA) nameA.value=''; 
+          if(nameB) nameB.value=''; 
+          if(consentDate) consentDate.value = new Date().toISOString().slice(0, 16);
+          if(chkFree) chkFree.checked=false;
+          if(chkAware) chkAware.checked=false;
+          if(chkAdult) chkAdult.checked=false;
+          if(note) note.value='';
+          if(previewA) previewA.innerHTML=''; 
+          if(previewB) previewB.innerHTML=''; 
+          imgA=null; 
+          imgB=null; 
+          if(signerA) signerA.clear(); 
+          if(signerB) signerB.clear();
+          if(uploadA) uploadA.value = '';
+          if(uploadB) uploadB.value = '';
+          if(pdfPreview) pdfPreview.textContent = 'PDF will include names, date/time, statements, signatures and any included photos.';
+          updateNameReferences(); // Reset name references
+        });
+      }
 
       // generate PDF
-      generate.addEventListener('click', async ()=>{
+      if(generate) {
+        generate.addEventListener('click', async ()=>{
         // validations
         if(!nameA.value || !nameB.value){
           alert('Both names are required.');
@@ -893,8 +915,10 @@
           consentDate.value = new Date().toISOString().slice(0,16); 
         }
 
-        generate.disabled = true; 
-        generate.textContent='Generating...';
+        if(generate) {
+          generate.disabled = true; 
+          generate.textContent='Generating...';
+        }
 
         try{
           const { jsPDF } = window.jspdf;
@@ -998,9 +1022,12 @@
           console.error(err); 
           alert('Error generating PDF: '+err.message); 
         }
-        generate.disabled=false; 
-        generate.textContent='Generate PDF';
-      });
+        if(generate) {
+          generate.disabled=false; 
+          generate.textContent='Generate PDF';
+        }
+        });
+      }
 
       // helper to load image and get width/height
       function loadImage(dataURL){ 
