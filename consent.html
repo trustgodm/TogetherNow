@@ -1,0 +1,1042 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Consent PDF Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #0f1624;
+      --bg-card: #141b2d;
+      --bg-input: rgba(255, 255, 255, 0.05);
+      --accent: #60a5fa;
+      --accent-hover: #3b82f6;
+      --accent-light: #93c5fd;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-focus: rgba(96, 165, 250, 0.5);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-light: #fca5a5;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 16px;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, #0a1120 100%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding: 24px 0;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header .lead {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin: 0;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.5), 0 6px 8px -2px rgba(0, 0, 0, 0.4);
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    label.small {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="datetime-local"],
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 15px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="datetime-local"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+
+    input[type="text"]::placeholder,
+    textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .consent-checks {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(96, 165, 250, 0.05);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(96, 165, 250, 0.1);
+    }
+
+    .consent-checks label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin: 0;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+    }
+
+    .consent-checks label:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .consent-checks input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .signature-section {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .signature-canvas-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    canvas[id^="sig"] {
+      width: 100%;
+      max-width: 100%;
+      height: 140px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 2px solid var(--border);
+      cursor: crosshair;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .signature-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 100px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0e1a;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--border-focus);
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #0a0e1a;
+    }
+
+    .btn-warning:hover {
+      background: #d97706;
+      transform: translateY(-1px);
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+
+    .photo-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .photo-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .photo-control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .photo-control-group input[type="file"] {
+      font-size: 13px;
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .photo-control-group .muted {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .photo-preview {
+      width: 100%;
+      min-height: 200px;
+      background: var(--bg-input);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .photo-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+    }
+
+    .photo-preview:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .camera-area {
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .camera-area.hidden {
+      display: none;
+    }
+
+    .camera-controls {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    #video {
+      width: 100%;
+      max-width: 300px;
+      border-radius: var(--radius-sm);
+      background: #000;
+      border: 2px solid var(--border);
+    }
+
+    .camera-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .info-box {
+      padding: 16px;
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+    }
+
+    .info-box strong {
+      display: block;
+      color: var(--accent-light);
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .info-box ul,
+    .info-box ol {
+      margin: 8px 0 0;
+      padding-left: 20px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .info-box li {
+      margin-bottom: 4px;
+    }
+
+    .warning-box {
+      padding: 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--danger);
+    }
+
+    .warning-box strong {
+      display: block;
+      color: var(--danger-light);
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .warning-box .muted {
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .preview-box {
+      padding: 16px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .preview-box strong {
+      display: block;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    #pdfPreview {
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1024px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .signature-section {
+        flex-direction: column;
+      }
+
+      .signature-controls {
+        flex-direction: row;
+        width: 100%;
+      }
+
+      .photo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .action-buttons .btn {
+        width: 100%;
+      }
+    }
+
+    /* Smooth scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Focus visible for accessibility */
+    *:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <header class="header">
+      <h1>Consent PDF Generator</h1>
+      <p class="lead">Privacy-first document creation. Everything runs in your browser. No data is uploaded or stored on any server. Close the page to clear all data.</p>
+    </header>
+
+    <div class="grid">
+      <main>
+        <div class="card">
+          <form id="consentForm">
+            <div class="form-group">
+              <label for="nameA">Person A Full Name</label>
+              <input id="nameA" type="text" placeholder="Enter full name" autocomplete="name" required />
+            </div>
+
+            <div class="form-group">
+              <label for="nameB">Person B Full Name</label>
+              <input id="nameB" type="text" placeholder="Enter full name" autocomplete="name" required />
+            </div>
+
+            <div class="form-group">
+              <label for="consentDate">Date & Time of Intent</label>
+              <input id="consentDate" type="datetime-local" />
+            </div>
+
+            <div class="section">
+              <label class="section-title">Consent Statements</label>
+              <div class="consent-checks">
+                <label>
+                  <input id="chkFree" type="checkbox" required />
+                  <span>I confirm I am consenting freely, without pressure.</span>
+                </label>
+                <label>
+                  <input id="chkAware" type="checkbox" required />
+                  <span>I confirm I understand the nature of this encounter.</span>
+                </label>
+                <label>
+                  <input id="chkAdult" type="checkbox" required />
+                  <span>I confirm I am 18 years or older.</span>
+                </label>
+            </div>
+
+            <div class="section">
+              <label class="section-title">Signatures</label>
+              
+              <div class="form-group">
+                <label class="small" id="sigLabelA">Person A Signature</label>
+                <div class="signature-section">
+                  <div class="signature-canvas-wrapper">
+                    <canvas id="sigA" width="400" height="140"></canvas>
+                  </div>
+                  <div class="signature-controls">
+                    <button type="button" class="btn btn-secondary btn-small" id="clearA">Clear</button>
+                    <span class="muted" style="font-size: 11px; text-align: center;">Use mouse or touch</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="small" id="sigLabelB">Person B Signature</label>
+                <div class="signature-section">
+                  <div class="signature-canvas-wrapper">
+                    <canvas id="sigB" width="400" height="140"></canvas>
+                  </div>
+                  <div class="signature-controls">
+                    <button type="button" class="btn btn-secondary btn-small" id="clearB">Clear</button>
+                    <span class="muted" style="font-size: 11px; text-align: center;">Use mouse or touch</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <label class="section-title">Photos</label>
+              <p class="muted" style="margin-bottom: 12px; font-size: 12px;">Selfie, These are not uploaded to any server.</p>
+              
+              <div class="photo-controls">
+                <div class="photo-control-group">
+                  <button type="button" class="btn btn-secondary btn-small" id="camToggle">Open Camera</button>
+                  <span class="muted">Take live photo</span>
+                </div>
+              </div>
+
+              <div class="photo-grid" style="margin-top: 16px;">
+                <div class="photo-preview" id="previewA" data-placeholder="Person A photo preview"></div>
+                <div class="photo-preview" id="previewB" data-placeholder="Person B photo preview"></div>
+              </div>
+
+              <div class="camera-area hidden" id="cameraArea">
+                <div class="camera-controls">
+                  <video id="video" autoplay playsinline></video>
+                  <div class="camera-buttons">
+                    <button type="button" class="btn btn-primary btn-small" id="snapA">Take for Person A</button>
+                    <button type="button" class="btn btn-primary btn-small" id="snapB">Take for Person B</button>
+                    <button type="button" class="btn btn-secondary btn-small" id="closeCam">Close Camera</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button type="button" class="btn btn-primary" id="generate">Generate PDF</button>
+              <button type="button" class="btn btn-warning" id="clearAll">Clear Form</button>
+            </div>
+
+            <div class="footer-note">
+              By using this tool you confirm you understand it is only a record of present mutual consent. This site stores nothing. Close the page to remove data.
+            </div>
+          </form>
+        </div>
+      </main>
+
+      <aside class="sidebar">
+      
+
+        <div class="card">
+          <div class="info-box">
+            <strong>How It Works</strong>
+            <ol>
+              <li>Fill both names and check statements.</li>
+              <li>Capture live photos.</li>
+              <li>Draw signatures and click Generate PDF.</li>
+              <li>PDF downloads locally. Close page to clear all data.</li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Client-side-only app. No network calls except loading libraries from CDN.
+    (function(){
+      const nameA = document.getElementById('nameA');
+      const nameB = document.getElementById('nameB');
+      const consentDate = document.getElementById('consentDate');
+      const chkFree = document.getElementById('chkFree');
+      const chkAware = document.getElementById('chkAware');
+      const chkAdult = document.getElementById('chkAdult');
+      const note = document.getElementById('note');
+      const uploadA = document.getElementById('uploadA');
+      const uploadB = document.getElementById('uploadB');
+      const previewA = document.getElementById('previewA');
+      const previewB = document.getElementById('previewB');
+      const camToggle = document.getElementById('camToggle');
+      const cameraArea = document.getElementById('cameraArea');
+      const video = document.getElementById('video');
+      const snapA = document.getElementById('snapA');
+      const snapB = document.getElementById('snapB');
+      const closeCam = document.getElementById('closeCam');
+      const generate = document.getElementById('generate');
+      const clearAll = document.getElementById('clearAll');
+      const clearA = document.getElementById('clearA');
+      const clearB = document.getElementById('clearB');
+      const sigA = document.getElementById('sigA');
+      const sigB = document.getElementById('sigB');
+      const pdfPreview = document.getElementById('pdfPreview');
+      const sigLabelA = document.getElementById('sigLabelA');
+      const sigLabelB = document.getElementById('sigLabelB');
+      const uploadLabelA = document.getElementById('uploadLabelA');
+      const uploadLabelB = document.getElementById('uploadLabelB');
+
+      let stream = null;
+      let imgA = null; // dataURL
+      let imgB = null;
+
+      // Set default date to now
+      consentDate.value = new Date().toISOString().slice(0, 16);
+
+      // Function to update all name references dynamically
+      function updateNameReferences() {
+        const nameAValue = nameA.value.trim() || 'Person A';
+        const nameBValue = nameB.value.trim() || 'Person B';
+        
+        // Update signature labels
+        sigLabelA.textContent = `${nameAValue} Signature`;
+        sigLabelB.textContent = `${nameBValue} Signature`;
+        
+        // Update upload labels
+        uploadLabelA.textContent = `${nameAValue} upload`;
+        uploadLabelB.textContent = `${nameBValue} upload`;
+        
+        // Update camera buttons
+        snapA.textContent = `Take for ${nameAValue}`;
+        snapB.textContent = `Take for ${nameBValue}`;
+        
+        // Update photo preview placeholders
+        previewA.setAttribute('data-placeholder', `${nameAValue} photo preview`);
+        previewB.setAttribute('data-placeholder', `${nameBValue} photo preview`);
+      }
+
+      // Update names in real-time as user types
+      nameA.addEventListener('input', updateNameReferences);
+      nameB.addEventListener('input', updateNameReferences);
+
+      // signature helper
+      function makeSignCanvas(canvas){
+        const ctx = canvas.getContext('2d');
+        let drawing = false; let last = null;
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        function pos(e){
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          if(e.touches && e.touches[0]){
+            return {x: (e.touches[0].clientX-rect.left) * scaleX, y: (e.touches[0].clientY-rect.top) * scaleY};
+          }
+          return {x: (e.clientX-rect.left) * scaleX, y: (e.clientY-rect.top) * scaleY};
+        }
+        function down(e){ drawing=true; last=pos(e); }
+        function up(){ drawing=false; last=null; }
+        function move(e){ if(!drawing) return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; }
+        canvas.addEventListener('mousedown',down); canvas.addEventListener('touchstart',down);
+        window.addEventListener('mouseup',up); canvas.addEventListener('touchend',up);
+        canvas.addEventListener('mousemove',move); canvas.addEventListener('touchmove',move,{passive:false});
+        return {clear: ()=>{ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);}}
+      }
+      const signerA = makeSignCanvas(sigA);
+      const signerB = makeSignCanvas(sigB);
+      clearA.addEventListener('click',()=>signerA.clear());
+      clearB.addEventListener('click',()=>signerB.clear());
+
+      // upload handlers
+      function handleFileInput(input, targetPreview, assignTo){
+        input.addEventListener('change', (ev)=>{
+          const f = ev.target.files && ev.target.files[0];
+          if(!f) return;
+          const reader = new FileReader();
+          reader.onload = function(){
+            const url = reader.result;
+            assignTo(url);
+            targetPreview.innerHTML = '';
+            const img = new Image(); 
+            img.src = url; 
+            img.style.maxWidth='100%'; 
+            img.style.maxHeight='100%'; 
+            img.style.objectFit='contain';
+            targetPreview.appendChild(img);
+          }
+          reader.readAsDataURL(f);
+        });
+      }
+      handleFileInput(uploadA, previewA, (d)=>{imgA=d});
+      handleFileInput(uploadB, previewB, (d)=>{imgB=d});
+
+      // Camera
+      camToggle.addEventListener('click',async ()=>{
+        if(cameraArea.classList.contains('hidden')){
+          try{
+            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+            video.srcObject = stream; 
+            cameraArea.classList.remove('hidden'); 
+            camToggle.textContent='Close Camera';
+          }catch(err){
+            alert('Cannot open camera: '+err.message);
+          }
+        } else {
+          stopStream(); 
+          cameraArea.classList.add('hidden'); 
+          camToggle.textContent='Open Camera';
+        }
+      });
+      closeCam.addEventListener('click', ()=>{ 
+        stopStream(); 
+        cameraArea.classList.add('hidden'); 
+        camToggle.textContent='Open Camera';
+      });
+      function stopStream(){ 
+        if(stream){ 
+          stream.getTracks().forEach(t=>t.stop()); 
+          stream=null; 
+          video.srcObject=null; 
+        }
+      }
+      function captureFromVideo(){
+        const c = document.createElement('canvas'); 
+        c.width=video.videoWidth||640; 
+        c.height=video.videoHeight||480; 
+        c.getContext('2d').drawImage(video,0,0,c.width,c.height); 
+        return c.toDataURL('image/jpeg',0.85); 
+      }
+      snapA.addEventListener('click', ()=>{ 
+        if(!stream){alert('Open camera first');return} 
+        imgA=captureFromVideo(); 
+        previewA.innerHTML=''; 
+        const im=new Image();
+        im.src=imgA;
+        im.style.maxWidth='100%';
+        im.style.maxHeight='100%';
+        im.style.objectFit='contain';
+        previewA.appendChild(im); 
+      });
+      snapB.addEventListener('click', ()=>{ 
+        if(!stream){alert('Open camera first');return} 
+        imgB=captureFromVideo(); 
+        previewB.innerHTML=''; 
+        const im=new Image();
+        im.src=imgB;
+        im.style.maxWidth='100%';
+        im.style.maxHeight='100%';
+        im.style.objectFit='contain';
+        previewB.appendChild(im); 
+      });
+
+      // clear form
+      clearAll.addEventListener('click', ()=>{
+        if(!confirm('Clear the entire form? This will erase local data.')) return;
+        nameA.value=''; 
+        nameB.value=''; 
+        consentDate.value = new Date().toISOString().slice(0, 16);
+        chkFree.checked=chkAware.checked=chkAdult.checked=false; 
+        note.value='';
+        previewA.innerHTML=''; 
+        previewB.innerHTML=''; 
+        imgA=null; 
+        imgB=null; 
+        signerA.clear(); 
+        signerB.clear();
+        uploadA.value = '';
+        uploadB.value = '';
+        pdfPreview.textContent = 'PDF will include names, date/time, statements, signatures and any included photos.';
+        updateNameReferences(); // Reset name references
+      });
+
+      // generate PDF
+      generate.addEventListener('click', async ()=>{
+        // validations
+        if(!nameA.value || !nameB.value){
+          alert('Both names are required.');
+          return;
+        }
+        if(!(chkFree.checked && chkAware.checked && chkAdult.checked)){
+          alert('All consent statements must be checked by both parties.');
+          return;
+        }
+        // ensure date
+        if(!consentDate.value){ 
+          consentDate.value = new Date().toISOString().slice(0,16); 
+        }
+
+        generate.disabled = true; 
+        generate.textContent='Generating...';
+
+        try{
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF({unit:'pt',format:'a4'});
+
+          const margin = 40; let y = margin;
+          doc.setFontSize(18); 
+          doc.text('Mutual Consent Record', doc.internal.pageSize.getWidth()/2, y, {align:'center'});
+          y+=28; 
+          doc.setFontSize(11);
+
+          doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y); 
+          y+=18;
+
+          doc.setFontSize(12); 
+          doc.text(`Person A: ${nameA.value}`, margin, y); 
+          y+=16;
+          doc.text(`Person B: ${nameB.value}`, margin, y); 
+          y+=16;
+          doc.text(`Date/time stated: ${new Date(consentDate.value).toLocaleString()}`, margin, y); 
+          y+=18;
+
+          if(note.value){ 
+            doc.text('Note: '+note.value, margin, y); 
+            y+=18;
+          }
+
+          doc.setFontSize(11);
+          doc.text('Consent statements (both checked):', margin, y); 
+          y+=14;
+          doc.text('- I confirm I am consenting freely, without pressure.', margin+10, y); 
+          y+=12;
+          doc.text('- I confirm I understand the nature of this encounter.', margin+10, y); 
+          y+=12;
+          doc.text('- I confirm I am 18 years or older.', margin+10, y); 
+          y+=20;
+
+          // add photos if available
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const maxPhotoW = 220; const maxPhotoH = 160;
+          const photoStartY = y;
+          let maxPhotoHeight = 0;
+          
+          if(imgA){ 
+            try{ 
+              const personAName = nameA.value.trim() || 'Person A';
+              doc.text(`${personAName} photo:`, margin, y); 
+              const imgProps = await loadImage(imgA); 
+              const dims = fit(imgProps.width,imgProps.height,maxPhotoW,maxPhotoH); 
+              doc.addImage(imgA,'JPEG',margin,y+12,dims.w,dims.h); 
+              maxPhotoHeight = Math.max(maxPhotoHeight, dims.h);
+            }catch(e){
+              console.warn('Error loading Person A photo:', e);
+            } 
+          }
+          if(imgB){ 
+            try{ 
+              const rightX = pageWidth - margin - maxPhotoW; 
+              const personBName = nameB.value.trim() || 'Person B';
+              doc.text(`${personBName} photo:`, rightX, y); 
+              const imgProps = await loadImage(imgB); 
+              const dims = fit(imgProps.width,imgProps.height,maxPhotoW,maxPhotoH); 
+              doc.addImage(imgB,'JPEG',rightX,y+12,dims.w,dims.h); 
+              maxPhotoHeight = Math.max(maxPhotoHeight, dims.h);
+            }catch(e){
+              console.warn('Error loading Person B photo:', e);
+            } 
+          }
+
+          // move y down after photos area (12px for text + photo height + spacing)
+          y = photoStartY + 12 + maxPhotoHeight + 30;
+
+          // signatures
+          const sigAdata = sigA.toDataURL('image/png');
+          const sigBdata = sigB.toDataURL('image/png');
+
+          doc.text('Signatures:', margin, y); 
+          y+=10;
+          try{
+            doc.addImage(sigAdata,'PNG',margin,y,220,60);
+            doc.addImage(sigBdata,'PNG',pageWidth - margin - 220,y,220,60);
+          }catch(e){ 
+            console.warn('sig add error', e); 
+          }
+
+          y+=80;
+          doc.setFontSize(10);
+          doc.text('This document is a record of mutual, present consent. It is not a legal contract and does not replace communication or legal advice.', margin, y);
+
+          // create a SHA-like fingerprint of the content (simple hash of combined data) to provide proof without storing raw data
+          const fingerprint = await createFingerprint({nameA: nameA.value, nameB: nameB.value, date: consentDate.value, note: note.value});
+          y+=28; 
+          doc.setFontSize(9); 
+          doc.text('Document fingerprint: '+fingerprint, margin, y);
+
+          // finalize and download
+          doc.save(`mutual-consent-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`);
+
+          pdfPreview.textContent = 'PDF generated and downloaded locally. Close the page to clear data.';
+        }catch(err){ 
+          console.error(err); 
+          alert('Error generating PDF: '+err.message); 
+        }
+        generate.disabled=false; 
+        generate.textContent='Generate PDF';
+      });
+
+      // helper to load image and get width/height
+      function loadImage(dataURL){ 
+        return new Promise((res,rej)=>{ 
+          const im=new Image(); 
+          im.onload=()=>res({width:im.naturalWidth,height:im.naturalHeight}); 
+          im.onerror=rej; 
+          im.src=dataURL; 
+        }); 
+      }
+      function fit(w,h,maxW,maxH){ 
+        const ratio=Math.min(maxW/w,maxH/h,1); 
+        return {w: w*ratio, h: h*ratio}; 
+      }
+
+      // lightweight fingerprint (SHA-256 over concatenated fields)
+      async function createFingerprint(obj){
+        const s = JSON.stringify(obj)+'|'+Date.now();
+        const enc = new TextEncoder().encode(s);
+        const hash = await crypto.subtle.digest('SHA-256', enc);
+        const b = Array.from(new Uint8Array(hash)).map(x=>x.toString(16).padStart(2,'0')).join('');
+        return b.slice(0,32);
+      }
+
+      // clear data on unload
+      window.addEventListener('beforeunload', ()=>{
+        // stop camera
+        stopStream();
+        // wipe variables
+        imgA = null; imgB = null;
+        nameA.value=''; nameB.value=''; consentDate.value=''; note.value='';
+        chkFree.checked=chkAware.checked=chkAdult.checked=false;
+        try{ signerA.clear(); signerB.clear(); }catch(e){}
+      });
+
+    })();
+  </script>
+</body>
+</html>
