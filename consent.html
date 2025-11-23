@@ -594,6 +594,11 @@
                 </label>
             </div>
 
+            <div class="form-group">
+              <label for="note" class="small">Optional Note</label>
+              <textarea id="note" rows="3" placeholder="Optional: e.g. met at... or other remarks"></textarea>
+            </div>
+
             <div class="section">
               <label class="section-title">Signatures</label>
               
@@ -902,16 +907,16 @@
       if(generate) {
         generate.addEventListener('click', async ()=>{
         // validations
-        if(!nameA.value || !nameB.value){
+        if(!nameA || !nameA.value || !nameB || !nameB.value){
           alert('Both names are required.');
           return;
         }
-        if(!(chkFree.checked && chkAware.checked && chkAdult.checked)){
+        if(!chkFree || !chkAware || !chkAdult || !(chkFree.checked && chkAware.checked && chkAdult.checked)){
           alert('All consent statements must be checked by both parties.');
           return;
         }
         // ensure date
-        if(!consentDate.value){ 
+        if(consentDate && !consentDate.value){ 
           consentDate.value = new Date().toISOString().slice(0,16); 
         }
 
@@ -934,14 +939,20 @@
           y+=18;
 
           doc.setFontSize(12); 
-          doc.text(`Person A: ${nameA.value}`, margin, y); 
-          y+=16;
-          doc.text(`Person B: ${nameB.value}`, margin, y); 
-          y+=16;
-          doc.text(`Date/time stated: ${new Date(consentDate.value).toLocaleString()}`, margin, y); 
-          y+=18;
+          if(nameA && nameA.value) {
+            doc.text(`Person A: ${nameA.value}`, margin, y); 
+            y+=16;
+          }
+          if(nameB && nameB.value) {
+            doc.text(`Person B: ${nameB.value}`, margin, y); 
+            y+=16;
+          }
+          if(consentDate && consentDate.value) {
+            doc.text(`Date/time stated: ${new Date(consentDate.value).toLocaleString()}`, margin, y); 
+            y+=18;
+          }
 
-          if(note.value){ 
+          if(note && note.value){ 
             doc.text('Note: '+note.value, margin, y); 
             y+=18;
           }
@@ -1009,7 +1020,12 @@
           doc.text('This document is a record of mutual, present consent. It is not a legal contract and does not replace communication or legal advice.', margin, y);
 
           // create a SHA-like fingerprint of the content (simple hash of combined data) to provide proof without storing raw data
-          const fingerprint = await createFingerprint({nameA: nameA.value, nameB: nameB.value, date: consentDate.value, note: note.value});
+          const fingerprint = await createFingerprint({
+            nameA: nameA ? nameA.value : '', 
+            nameB: nameB ? nameB.value : '', 
+            date: consentDate ? consentDate.value : '', 
+            note: note ? note.value : ''
+          });
           y+=28; 
           doc.setFontSize(9); 
           doc.text('Document fingerprint: '+fingerprint, margin, y);
@@ -1017,7 +1033,9 @@
           // finalize and download
           doc.save(`mutual-consent-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`);
 
-          pdfPreview.textContent = 'PDF generated and downloaded locally. Close the page to clear data.';
+          if(pdfPreview) {
+            pdfPreview.textContent = 'PDF generated and downloaded locally. Close the page to clear data.';
+          }
         }catch(err){ 
           console.error(err); 
           alert('Error generating PDF: '+err.message); 
